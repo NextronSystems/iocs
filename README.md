@@ -1,4 +1,4 @@
-# iocs
+# Indicators of Compromise
 
 The following repository contains indicators of compromise related to analysis and research by Nextron Threat Research team
 
