@@ -1,12 +1,8 @@
-## YARA Rule
+# Peach Sandstorm - False Font Malware
 
-https://github.com/Neo23x0/signature-base/blob/master/yara/apt_peach_sandstorm.yar
+The following IOCs are based on the analysis and research described in the following blogpost
 
-## Sigma Rules
-
-https://github.com/SigmaHQ/sigma/blob/master/rules-emerging-threats/2023/TA/Peach-Sandstorm/proc_creation_win_apt_peach_sandstorm_indicators.yml
-
-https://github.com/SigmaHQ/sigma/blob/master/rules-emerging-threats/2023/TA/Peach-Sandstorm/proxy_apt_peach_sandstorm_falsefont_backdoor_c2_coms.yml
+- [Analysis of FalseFont Backdoor used by Peach-Sandstorm Threat Actor](https://www.nextron-systems.com/2024/01/29/analysis-of-falsefont-backdoor-used-by-peach-sandstorm-threat-actor/)
 
 ## IOCs
 | Type | Indicator |
@@ -35,4 +31,16 @@ https://github.com/SigmaHQ/sigma/blob/master/rules-emerging-threats/2023/TA/Peac
     - `Value: System.exe Data: %localappdata%\Microsoft\System.exe`
 
 ## Additional Resources
-[String Decryption and Cleanup Script](https://github.com/NextronSystems/iocs/tree/master/reports/peach_sandstorm_false_font/scripts/)
+
+### Yara
+
+- [APT_MAL_FalseFont_Backdoor_Jan24](https://github.com/Neo23x0/signature-base/blob/master/yara/apt_peach_sandstorm.yar)
+
+### Sigma
+
+- [Potential Peach Sandstorm APT C2 Communication Activity](https://github.com/SigmaHQ/sigma/blob/master/rules-emerging-threats/2023/TA/Peach-Sandstorm/proxy_apt_peach_sandstorm_falsefont_backdoor_c2_coms.yml)
+- [Peach Sandstorm APT Process Activity Indicators](https://github.com/SigmaHQ/sigma/blob/master/rules-emerging-threats/2023/TA/Peach-Sandstorm/proc_creation_win_apt_peach_sandstorm_indicators.yml)
+
+### Scripts
+
+- [String Decryption and Cleanup Script](https://github.com/NextronSystems/iocs/tree/master/reports/peach_sandstorm_false_font/scripts/)
