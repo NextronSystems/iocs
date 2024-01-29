@@ -1,0 +1,2 @@
+pythonnet>=3.0.1
+pycryptodome>=3.20.0
