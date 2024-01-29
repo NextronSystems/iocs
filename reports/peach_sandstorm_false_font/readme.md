@@ -23,3 +23,6 @@
     - `Value: broker.exe Data: %localappdata%\broker.exe`
 
     - `Value: System.exe Data: %localappdata%\Microsoft\System.exe`
+
+## Additional Resources
+[String Decryption and Cleanup Script](https://github.com/NextronSystems/iocs/tree/master/reports/peach_sandstorm_false_font/scripts/)
