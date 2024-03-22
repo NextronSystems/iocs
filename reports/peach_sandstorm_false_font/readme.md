@@ -1,6 +1,6 @@
 # Peach Sandstorm - False Font Malware
 
-The following IOCs are based on the analysis and research described in the following blogpost
+The following IOCs are based on the analysis and research described in the following blog post:
 
 - [Analysis of FalseFont Backdoor used by Peach-Sandstorm Threat Actor](https://www.nextron-systems.com/2024/01/29/analysis-of-falsefont-backdoor-used-by-peach-sandstorm-threat-actor/)
 
@@ -43,4 +43,4 @@ The following IOCs are based on the analysis and research described in the follo
 
 ### Scripts
 
-- [String Decryption and Cleanup Script](https://github.com/NextronSystems/iocs/tree/master/reports/peach_sandstorm_false_font/scripts/)
+- [String Decryption and Cleanup Script](./scripts/falsefont-cleaner.py)
