@@ -8,8 +8,8 @@ The following IOCs are based on the analysis and research described in the follo
 
 #### New Variant
 
-| Type | Indicator | Description |
-| ---- | ---- | ---- |
+| Type | Indicator |
+| ---- | ---- |
 | Commandline | `SCHTASKS /CREATE /f /TN "OneDriver Reporting Task" /TR "shutdown /l /f" /SC WEEKLY /d TUE,FRI /ST 12:35` |
 | Path | `%localappdata%\Temp\wctA91F.tmp` |
 | Path | `%localappdata%\Temp\3f88dd57-6ce606be-54c358fb-c566587a.tmp` |
@@ -17,8 +17,8 @@ The following IOCs are based on the analysis and research described in the follo
 
 #### Old Variant
 
-| Type | Indicator | Description |
-| ---- | ---- | ---- |
+| Type | Indicator |
+| ---- | ---- |
 | Commandline | `SCHTASKS /CREATE /f /TN "Health Check" /TR "shutdown /l /f" /SC WEEKLY /d WED,FRI /ST 13:15` |
 | Commandline | `SCHTASKS /CREATE /f /TN "Microsoft Idle" /TR "shutdown /l /f" /SC WEEKLY /d WED,FRI /ST 23:00` |
 | Path | `%localappdata%\Temp\wctF3AB.tmp` |
