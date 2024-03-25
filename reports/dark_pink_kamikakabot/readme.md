@@ -61,6 +61,9 @@ You can grab the list of all the samples we currently track related to DarkPink 
 - [CurrentVersion NT Autorun Keys Modification](https://github.com/SigmaHQ/sigma/blob/961932ee3fa9751c8f91599b70ede33bc72d90eb/rules/windows/registry/registry_set/registry_set_asep_reg_keys_modification_currentversion_nt.yml)
 - [Potential WWlib.DLL Sideloading](https://github.com/SigmaHQ/sigma/blob/961932ee3fa9751c8f91599b70ede33bc72d90eb/rules/windows/image_load/image_load_side_load_wwlib.yml)
 - [Explorer Process Tree Break](https://github.com/SigmaHQ/sigma/blob/961932ee3fa9751c8f91599b70ede33bc72d90eb/rules/windows/process_creation/proc_creation_win_explorer_break_process_tree.yml)
+- [Potential KamiKakaBot Activity - Lure Document Execution](https://github.com/SigmaHQ/sigma/blob/c0f77338374eb0ef33830182f423f8a79fca6420/rules-emerging-threats/2024/Malware/KamiKakaBot/proc_creation_win_malware_kamikakabot_lnk_lure_execution.yml)
+- [Potential KamiKakaBot Activity - Shutdown Schedule Task Creation](https://github.com/SigmaHQ/sigma/blob/c0f77338374eb0ef33830182f423f8a79fca6420/rules-emerging-threats/2024/Malware/KamiKakaBot/proc_creation_win_malware_kamikakabot_schtasks_persistence.yml)
+- [Potential KamiKakaBot Activity - Winlogon Shell Persistence](https://github.com/SigmaHQ/sigma/blob/c0f77338374eb0ef33830182f423f8a79fca6420/rules-emerging-threats/2024/Malware/KamiKakaBot/registry_set_malware_kamikakabot_winlogon_persistence.yml)
 
 ### Scripts
 
