@@ -2,7 +2,7 @@
 
 The following IOCs are based on the analysis and research described in the following blog post:
 
-- [In-Depth Analysis of Lynx Ransomware](https://www.nextron-systems.com/2024/10/11/lynx-ransomware-in-depth/)
+- [In-Depth Analysis of Lynx Ransomware](https://www.nextron-systems.com/2024/10/11/in-depth-analysis-of-lynx-ransomware/)
 
 ## IOCs
 | Type | Indicator | Family|
