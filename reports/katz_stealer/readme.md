@@ -2,7 +2,7 @@
 
 The following IOCs are based on the analysis and research described in the following blog post
 
-- [Katz Stealer Threat Analysis](link- we want to add it)
+- [Katz Stealer Threat Analysis](https://www.nextron-systems.com/2025/05/23/katz-stealer-threat-analysis/)
 ## IOCs
 
 
