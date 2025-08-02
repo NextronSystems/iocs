@@ -17,6 +17,10 @@ The following IOCs are based on the analysis and research described in the follo
 
 ## Additional Resources
 
+### Yara
+
+- [MAL_LNX_PLAGUE_BACKDOOR_Jul25](https://github.com/Neo23x0/signature-base/blob/master/yara/mal_lnx_plague.yar)
+
 ### Scripts
 
 - [Idapython String Decryptor](./scripts/Idapython-String-Decryptor.py)
