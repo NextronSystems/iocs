@@ -14,6 +14,7 @@ The following IOCs are based on the analysis and research described in the follo
 | SHA-256 | 6d2d30d5295ad99018146c8e67ea12f4aaa2ca1a170ad287a579876bf03c2950 | Plague Backdoor |
 | SHA-256 | e594bca43ade76bbaab2592e9eabeb8dca8a72ed27afd5e26d857659ec173261 | Plague Backdoor |
 | SHA-256 | 14b0c90a2eff6b94b9c5160875fcf29aff15dcfdfd3402d953441d9b0dca8b39 | Plague Backdoor |
+| SHA-256 | 104bd099b48e09c06efb4e634abd093d45cdfaef62f689545bc789002ebd2255 | Plague Backdoor New Variant |
 
 ## Additional Resources
 
@@ -24,4 +25,4 @@ The following IOCs are based on the analysis and research described in the follo
 ### Scripts
 
 - [Idapython String Decryptor](./scripts/Idapython-String-Decryptor.py)
-- [Idapython String Decryptor Variant_104bd099](./scripts/Idapython-String-Decryptor_Variant_104bd099.py)
+- [Idapython String Decryptor Variant](./scripts/Idapython-String-Decryptor_Variant.py)
