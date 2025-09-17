@@ -23,7 +23,7 @@ The following IOCs are based on the analysis and research described in the follo
 
 ### Yara
 
-- [SUSP_LNX_Sindoor_ELF_Obfuscation_Aug25, SUSP_LNX_Sindoor_DesktopFile_Aug25, MAL_Sindoor_Decryptor_Aug25, MAL_Sindoor_Downloader_Aug25](https://github.com/Neo23x0/signature-base/blob/master/yara/apt_apt36_operation_sindoor.yar)
+- [APT36 Operation_Sindoor](https://github.com/Neo23x0/signature-base/blob/master/yara/apt_apt36_operation_sindoor.yar)
 
 ### Scripts
 
