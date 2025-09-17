@@ -27,4 +27,4 @@ The following IOCs are based on the analysis and research described in the follo
 
 ### Scripts
 
-- [Idapython String Decryptor](./scripts/decode_meshagent_modules.py)
+- [Module Decryption](./scripts/decode_meshagent_modules.py)
