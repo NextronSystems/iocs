@@ -24,3 +24,4 @@ The following IOCs are based on the analysis and research described in the follo
 ### Scripts
 
 - [Idapython String Decryptor](./scripts/Idapython-String-Decryptor.py)
+- [Idapython String Decryptor Variant_104bd099](./scripts/Idapython-String-Decryptor_Variant_104bd099.py)
