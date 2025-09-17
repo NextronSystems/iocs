@@ -23,7 +23,7 @@ The following IOCs are based on the analysis and research described in the follo
 
 ### Yara
 
-- [APT36 Operation_Sindoor](https://github.com/Neo23x0/signature-base/blob/master/yara/apt_apt36_operation_sindoor.yar)
+- [APT36 Operation Sindoor](https://github.com/Neo23x0/signature-base/blob/master/yara/apt_apt36_operation_sindoor.yar)
 
 ### Scripts
 
