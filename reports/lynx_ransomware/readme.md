@@ -44,7 +44,3 @@ The following IOCs are based on the analysis and research described in the follo
 ### Sigma
 
 - [Potentially Suspicious Desktop Background Change Via Registry](https://github.com/SigmaHQ/sigma/blob/master/rules/windows/registry/registry_set/registry_set_desktop_background_change.yml)
-
-### IDA DB
-
-- [LYNX IDA Database](./idadb/lynx.idb)
