@@ -2,6 +2,8 @@
 
 The following IOCs are based on the analysis and research described in the following blog post:
 
+https://www.nextron-systems.com/2026/06/01/detecting-nimbus-manticore-and-their-sideloading-infection-chains/
+
 
 ## IOCs
 
