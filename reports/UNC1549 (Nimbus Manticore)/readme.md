@@ -47,4 +47,5 @@ https://www.nextron-systems.com/2026/06/01/detecting-nimbus-manticore-and-their-
 ### Yara
 
 [apt_apt35_malware_may26.yar](https://github.com/Neo23x0/signature-base/blob/master/yara/apt_apt35_malware_may26.yar)
+
 [susp_generic_rules_may26.yar](https://github.com/Neo23x0/signature-base/blob/master/yara/susp_generic_rules_may26.yar)
