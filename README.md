@@ -9,3 +9,4 @@ The following repository contains indicators of compromise related to analysis a
 - [Plague Linux PAM Backdoor Threat Analysis](./reports/plague_backdoor/readme.md)
 - [APT36 Sindoor dropper](./reports/sindoor_dropper/readme.md)
 - [WHQL-signed Windows kernel drivers](./reports/whql-signed/readme.md)
+- [Bootkits](./reports/bootkits/readme.md)
