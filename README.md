@@ -10,3 +10,4 @@ The following repository contains indicators of compromise related to analysis a
 - [APT36 Sindoor dropper](./reports/sindoor_dropper/readme.md)
 - [WHQL-signed Windows kernel drivers](./reports/whql-signed/readme.md)
 - [Bootkits](./reports/bootkits/readme.md)
+- [SSH Hijack](./reports/sshhijack/readme.md)
