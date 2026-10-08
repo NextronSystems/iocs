@@ -903,6 +903,5 @@ Issue comments containing `<!-- [base64] -->` where the base64 decrypts (AES-128
 ## References
 
 - Palo Alto Unit 42, ["Unraveling the Blinder Tunnel"](https://unit42.paloaltonetworks.com/blinder-tunnel-targets-critical-infrastructure/), June 2026
-- Elastic Security Labs, ShelbyC2 reporting
 - [VirusTotal: RuntimeBroker.dll](https://www.virustotal.com/gui/file/aa7d4bf74edacba06da7e9d414c0649599fb0e7b118f7c3ddcec09eb3f720c82)
 - [VirusTotal: StarkMeet (1).zip](https://www.virustotal.com/gui/file/8c68119ebef2ec4be1d57f867ecc1e3606f819bd6278d35a95c6d9b789ac0bfd)
