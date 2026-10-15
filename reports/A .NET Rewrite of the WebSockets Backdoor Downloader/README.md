@@ -1,4 +1,4 @@
-# A .NET Rewrite of the WebSockets Backdoor Downloader
+# A .NET Variant of the WebSockets Backdoor Downloader
 
 ## Introduction
 
@@ -10,7 +10,7 @@ We reversed the sample entirely through static analysis in dnSpy. We did not exe
 
 ## Key Findings
 
-- .NET 8 rewrite of the downloader documented by dmpdump, targeting the same payload server (`153.75.247[.]94`) and downloading the exact same seven files
+- .NET 8 variant of the downloader documented by dmpdump, targeting the same payload server (`153.75.247[.]94`) and downloading the exact same seven files
 - Deployed as a self-contained single-file executable (~14 MB), embedding the CoreCLR runtime alongside the 23 KB managed assembly - no .NET installation required on the victim
 - Zero obfuscation: all URLs, paths, and identifiers are in plaintext, in contrast to the native variant's XOR-encrypted strings and PEB-based API resolution
 - Significantly more resilient download logic: HTTP Range resume, parallel downloads, 50 retries with exponential backoff, and a 3-hour wait for fast internet
@@ -72,7 +72,7 @@ using (new Mutex(true, "Global\\Nvidia_Container_Downloader_Unique_ID_54321", re
         ShowWindow(GetConsoleWindow(), 0);
 ```
 
-The mutex name is remarkably verbose - it spells out the tool's purpose in plain English. Compare this with the native variant's `Global\NvCDIr_U54321`, which abbreviates everything. The shared `54321` suffix across both variants is a strong link to the same developer. It is plausible that the developer wrote the .NET version first (hence the descriptive name) and later condensed it for the C++ rewrite.
+The mutex name is remarkably verbose - it spells out the tool's purpose in plain English. Compare this with the native variant's `Global\NvCDIr_U54321`, which abbreviates everything. The shared `54321` suffix across both variants is a strong link to the same developer.
 
 ### Randomized Delays
 
