@@ -473,20 +473,7 @@ MITRE ATT&CK techniques.
 | Command and Control | T1105 | Ingress Tool Transfer | HTA downloads; `DOWNLOAD:<path>`; `EXEFILE`; DWApp file download |
 | Exfiltration | T1041 | Exfiltration Over C&C Channel | `submit-result-file`, `/api/AutoSliders/upload` |
 
-## 15. References
+## References
 
-1. ESET, ESET APT Activity Report, April 2026 to September 2026, page 13. https://web-assets.esetstatic.com/wls/en/papers/threat-reports/eset-apt-activity-report-q2-2026-q3-2026.pdf
-2. MITRE ATT&CK, T1553.005, Subvert Trust Controls: Mark-of-the-Web Bypass. https://attack.mitre.org/techniques/T1553/005/
-3. Team Cymru, Mapping out AridViper infrastructure using Recon's malware module. https://www.team-cymru.com/post/mapping-out-aridviper-infrastructure-using-recon-s-malware-module
-4. Symantec, Mantis: Palestinian attacks. https://www.security.com/threat-intelligence/mantis-palestinian-attacks
-5. MITRE ATT&CK, Group G1028 (APT-C-23). https://attack.mitre.org/groups/G1028/
-6. Kaspersky, Desert Falcons: first Arabic cyber-espionage group uncovered, February 2015. https://me-en.kaspersky.com/blog/desert-falcons-first-arabic-cyber-espionage-group-uncovered-by-kaspersky/4577/
-7. Meta, Technical threat report: Arid Viper, April 2021. https://about.fb.com/wp-content/uploads/2021/04/Technical-threat-report-Arid-Viper-April-2021.pdf
-8. Sekoia, AridViper, an intrusion set allegedly associated with Hamas. https://www.sekoia.com/blog/aridviper-an-intrusion-set-allegedly-associated-with-hamas
-9. dfir.ru, Mark of the Web: the rules changed, the tools didn't, 29 June 2026. https://dfir.ru/2026/06/29/mark-of-the-web-the-rules-changed-the-tools-didnt/
-10. MITRE ATT&CK, T1218.005, System Binary Proxy Execution: Mshta. https://attack.mitre.org/techniques/T1218/005/
-11. Bitdefender, Microsoft's mshta legacy malware. https://www.bitdefender.com/en-au/blog/labs/microsofts-mshta-legacy-malware-windows
-12. Proofpoint, UNK_CraftyCamel multistage polyglot. https://www.proofpoint.com/us/blog/threat-insight/call-it-what-you-want-threat-actor-delivers-highly-targeted-multistage-polyglot
-13. Trustwave SpiderLabs, RATs wrapped and hidden in PNG. https://www.levelblue.com/blogs/spiderlabs-blog/rats-wrapped-and-hidden-in-png
-14. Elastic Security Labs, Tricks and treats: IDAT Loader. https://www.elastic.co/security-labs/tricks-and-treats
-15. ESET, Worok: the big picture. https://www.welivesecurity.com/2022/09/06/worok-big-picture/
+ESET, ESET APT Activity Report, April 2026 to September 2026, page 13. https://web-assets.esetstatic.com/wls/en/papers/threat-reports/eset-apt-activity-report-q2-2026-q3-2026.pdf
+
