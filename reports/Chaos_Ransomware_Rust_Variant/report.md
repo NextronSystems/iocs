@@ -10,6 +10,7 @@ The first sample came up during a VirusTotal hunt for low-detection files matchi
 | Sample | Rule Name |
 |---|---|
 | 933ab1b794e63e5eec94cece4b8416cdfbd3d9616c02d4cc694a2f9b19c3aa2a| [MAL_RANSOM_Chaos_Variant_Oct25](https://valhalla.nextron-systems.com/info/rule/MAL_RANSOM_Chaos_Variant_Oct25)|
+| b7a13f7e70b128c157dbadeafb7c0412907f328a77b892968907f5a2b5d408b2| [MAL_RANSOM_Chaos_Variant_Oct25](https://valhalla.nextron-systems.com/info/rule/MAL_RANSOM_Chaos_Variant_Oct25)|
 | e5eabb24b24fa35cac12ad89c208942543c9b3908ce8dd38154a903b324212c2| MAL_RANSOM_Chaos_Rust_Variant_Nov26| <!-- ######################################################################################## should be replaced with Valhalla link -->
 | 0ceeb07495325ad67445ac6843d075bb86369563d9d1d40200a944ac81d2efc7| MAL_RANSOM_Chaos_Rust_Variant_Nov26| <!-- ######################################################################################## should be replaced with Valhalla link -->
 
