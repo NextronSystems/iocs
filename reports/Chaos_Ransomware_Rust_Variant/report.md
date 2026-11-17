@@ -26,7 +26,7 @@ Three samples were analyzed. Two use the **Kryptos** name (`Kryptos.pdb`, `[Kryp
 
 All three samples use the same BTC wallet address and the same Tor site in their ransom notes. The wallet (`bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh`) has appeared in earlier campaigns tied to Chaos ransomware operators. This links Kryptos and NC3 to the same threat actor, or at least the same payment infrastructure.
 
-The link is about the operator, not the code. Chaos is a .NET-based ransomware that uses AES encryption. Kryptos is a completely different codebase — written from scratch in Rust, with its own custom cryptography and file format. The operator switched to a new tool but kept the same wallet.
+The link is about the operator, not the code. Chaos is a C/C++ ransomware that uses AES encryption. Kryptos is a completely different codebase — written from scratch in Rust, with its own custom cryptography and file format. The operator switched to a new tool but kept the same wallet.
 
 ## What It Does
 
