@@ -36,39 +36,38 @@ The link is about the operator, not the code. Chaos is a C/C++ ransomware that u
 
 ## What It Does
 
-**Unhooking.** 
+### Unhooking
 
 The first thing the malware does is load a clean copy of `ntdll.dll` from disk and use it to overwrite the copy already in memory. This removes any hooks that security products may have placed on system calls, giving the malware a clean environment to work in.
 
-**Key setup.** 
+### Key setup
 
-It generates a master encryption key using `RtlGenRandom` and saves it to a file under `%LOCALAPPDATA%`. The file is locked down with an ACL that only allows access to SYSTEM and the current user.
+It generates a master encryption key using `RtlGenRandom` and saves it to a file under `%LOCALAPPDATA%`. The file is locked down with an ACL that only allows access to `SYSTEM` and the current user.
 
-**File encryption.** 
+### File encryption
 
-A walker component goes through user profiles and targets Desktop directories. Files are encrypted in 1 MB chunks using a custom scheme based on HMAC-SHA256, with each chunk getting a 16-byte authentication tag. Encrypted files get a magic header (`KRYP` or `NC3F` depending on the build) and are renamed with the `.toto.txt` extension. The original file timestamps are kept intact so the renamed files do not stand out in directory listings.
+A walker component goes through user profiles and targets `Desktop` directories. Files are encrypted in 1 MB chunks using a custom scheme based on HMAC-SHA256, with each chunk getting a 16-byte authentication tag.
 
-**Ransom note.** 
+Encrypted files get a magic header (`KRYP` or `NC3F`, depending on the build) and are renamed with the `.toto.txt` extension. The original file timestamps are kept intact so the renamed files do not stand out in directory listings.
 
-A personalized note is written to the victim's Desktop. The note text is hidden in the binary — in the Kryptos builds it sits as a single encrypted blob in `.rdata`, while the NC3 build splits it into about 15 separately encrypted pieces that are assembled at runtime. Either way, the `{PERSONAL_ID}` placeholder is filled in with the victim's ID before the note is written.
+### Ransom note
 
-**C2 beacon.** 
+A personalized note is written to the victim's Desktop. The note text is hidden in the binary:
 
-After encryption, the malware collects the computer name, username, domain, a hash of the master key, and the victim's personal ID. It sends all of this as a JSON POST to a URL that is also decoded at runtime. Instead of making network calls directly, it launches `curl.exe` as a child process — keeping its own import table clean.
+- In the Kryptos builds, it sits as a single encrypted blob in `.rdata`.
+- In the NC3 build, it is split into approximately 15 separately encrypted pieces that are assembled at runtime.
 
-**Shadow copy deletion.** 
+In both cases, the `{PERSONAL_ID}` placeholder is filled in with the victim's ID before the note is written.
+
+### C2 beacon
+
+After encryption, the malware collects the computer name, username, domain, a hash of the master key, and the victim's personal ID.
+
+It sends all of this as a JSON POST to a URL that is also decoded at runtime. Instead of making network calls directly, it launches `curl.exe` as a child process, keeping its own import table clean.
+
+### Shadow copy deletion
 
 Volume Shadow Copies are removed through the COM-based VSS interface, cutting off the most common way to recover files on Windows without paying.
-
-## String Obfuscation
-
-A strings dump of the binary returns almost nothing useful. Every important string — the ransom note, the C2 URL, file paths — is encrypted in the `.rdata` section and only decoded at runtime.
-
-The decryption uses a qword-addition cipher: the plaintext is the sum of a key array and an encrypted blob, both stored in `.rdata`. The key's address is not stored directly — it is computed at runtime by a control-flow-flattened state machine that has to be traced or emulated to resolve.
-
-The NC3 build adds another layer on top. Instead of storing the ransom note as one blob, it breaks the note into roughly 15 fragments, each encrypted separately with its own state-machine decoder. The decoders are polymorphic — each one uses a different mix of arithmetic and bitwise operations. The fragments are put together at runtime using Rust `format!()` macros before the note is finalized.
-
-The ransom note content is the same across all three samples despite the different obfuscation approaches.
 
 ## The Ransom Note
 
