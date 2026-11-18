@@ -11,4 +11,4 @@ The following repository contains indicators of compromise related to analysis a
 - [WHQL-signed Windows kernel drivers](./reports/whql-signed/readme.md)
 - [Bootkits](./reports/bootkits/readme.md)
 - [SSH Hijack](./reports/sshhijack/readme.md)
-- [Chaos Ransomware Rust Variant](./reports/reports/Chaos_Ransomware_Rust_Variant/report.md)
+- [Chaos Ransomware Rust Variant](./reports/Chaos_Ransomware_Rust_Variant/report.md)
