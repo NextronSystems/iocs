@@ -37,21 +37,27 @@ The link is about the operator, not the code. Chaos is a C/C++ ransomware that u
 ## What It Does
 
 **Unhooking.** 
+
 The first thing the malware does is load a clean copy of `ntdll.dll` from disk and use it to overwrite the copy already in memory. This removes any hooks that security products may have placed on system calls, giving the malware a clean environment to work in.
 
 **Key setup.** 
+
 It generates a master encryption key using `RtlGenRandom` and saves it to a file under `%LOCALAPPDATA%`. The file is locked down with an ACL that only allows access to SYSTEM and the current user.
 
 **File encryption.** 
+
 A walker component goes through user profiles and targets Desktop directories. Files are encrypted in 1 MB chunks using a custom scheme based on HMAC-SHA256, with each chunk getting a 16-byte authentication tag. Encrypted files get a magic header (`KRYP` or `NC3F` depending on the build) and are renamed with the `.toto.txt` extension. The original file timestamps are kept intact so the renamed files do not stand out in directory listings.
 
 **Ransom note.** 
+
 A personalized note is written to the victim's Desktop. The note text is hidden in the binary — in the Kryptos builds it sits as a single encrypted blob in `.rdata`, while the NC3 build splits it into about 15 separately encrypted pieces that are assembled at runtime. Either way, the `{PERSONAL_ID}` placeholder is filled in with the victim's ID before the note is written.
 
 **C2 beacon.** 
+
 After encryption, the malware collects the computer name, username, domain, a hash of the master key, and the victim's personal ID. It sends all of this as a JSON POST to a URL that is also decoded at runtime. Instead of making network calls directly, it launches `curl.exe` as a child process — keeping its own import table clean.
 
 **Shadow copy deletion.** 
+
 Volume Shadow Copies are removed through the COM-based VSS interface, cutting off the most common way to recover files on Windows without paying.
 
 ## String Obfuscation
