@@ -1,7 +1,13 @@
 # Chaos Ransomware (Rust Variant)
 
 
-The first sample came up during a VirusTotal hunt for low-detection files matching a Chaos ransomware rule — it had zero detections at the time. Starting from that sample, pivoting on shared artifacts turned up more binaries that were either completely undetected or not flagged as ransomware. Reverse engineering the binaries and decrypting the embedded ransom note confirmed the link to the Chaos ransomware operator. Further hunting from that point has since surfaced around 300 additional samples.
+The first sample was identified during a VirusTotal hunt for low-detection files matching [**a Chaos ransomware rule**](https://valhalla.nextron-systems.com/info/rule/MAL_RANSOM_Chaos_Variant_Oct25). At the time, it had zero detections.
+
+Starting from this sample, pivoting on shared artifacts uncovered additional binaries that were either completely undetected or not flagged as ransomware.
+
+Reverse engineering the binaries and decrypting their embedded ransom notes confirmed their connection to the **Chaos ransomware** operator.
+
+Further hunting based on these findings has since uncovered approximately 300 additional samples.
 
 ---
 
