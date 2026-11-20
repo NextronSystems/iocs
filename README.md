@@ -11,3 +11,4 @@ The following repository contains indicators of compromise related to analysis a
 - [WHQL-signed Windows kernel drivers](./reports/whql-signed/readme.md)
 - [Bootkits](./reports/bootkits/readme.md)
 - [SSH Hijack](./reports/sshhijack/readme.md)
+- [Linux x86-64 Implant with Multiple Persistence Mechanisms](./reports/linux_implant/README.md)
