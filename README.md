@@ -11,3 +11,4 @@ The following repository contains indicators of compromise related to analysis a
 - [WHQL-signed Windows kernel drivers](./reports/whql-signed/readme.md)
 - [Bootkits](./reports/bootkits/readme.md)
 - [SSH Hijack](./reports/sshhijack/readme.md)
+- [clamp4js npm dropper (clampony / safeclamp3 campaign)](./reports/clamp4js/README.md)
